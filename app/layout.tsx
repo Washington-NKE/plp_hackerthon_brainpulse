@@ -12,7 +12,6 @@ export const metadata: Metadata = {
   title: "BrainPulse - Your Personal Mood Journal",
   description:
     "Track your emotions, understand your patterns, and improve your mental wellbeing with AI-powered insights and compassionate guidance.",
-  generator: "v0.app",
 }
 
 export default function RootLayout({
