@@ -18,26 +18,36 @@ export async function GET(request: NextRequest) {
     const days = range === "week" ? 7 : range === "month" ? 30 : 90
     const startDate = subDays(new Date(), days)
 
-    // Fetch journal entries - using the actual database field names
-    const entries = await prisma.journalEntry.findMany({
+    // Fetch journal entries and map to camelCase
+    const rawEntries = await prisma.journalEntry.findMany({
       where: {
         userId: session.user.id,
-        created_at: { // Using snake_case field name
+        created_at: {
           gte: startDate,
         },
       },
       select: {
-        mood_score: true, // Using snake_case field name
+        mood_score: true,
         emotions: true,
-        sleep_hours: true, // Using snake_case field name
-        stress_level: true, // Using snake_case field name
-        created_at: true, // Using snake_case field name
+        sleep_hours: true,
+        stress_level: true,
+        created_at: true,
         date: true,
       },
       orderBy: {
-        created_at: 'asc', // Using snake_case field name
+        created_at: 'asc',
       },
     })
+
+    // Map to camelCase for consistent usage
+    const entries = rawEntries.map(entry => ({
+      moodScore: entry.mood_score,
+      emotions: entry.emotions,
+      sleepHours: entry.sleep_hours,
+      stressLevel: entry.stress_level,
+      createdAt: entry.created_at,
+      date: entry.date,
+    }))
 
     // Calculate mood trend with moving average
     type MoodTrendPoint = { date: string; mood: number; movingAverage: number }
@@ -49,7 +59,7 @@ export async function GET(request: NextRequest) {
       if (!dailyMoods.has(date)) {
         dailyMoods.set(date, [])
       }
-      dailyMoods.get(date)!.push(entry.mood_score) // Using snake_case field name
+      dailyMoods.get(date)!.push(entry.moodScore) // Now using camelCase
     })
 
     for (const [date, moods] of dailyMoods) {
@@ -94,16 +104,16 @@ export async function GET(request: NextRequest) {
       mood: moods.reduce((sum: number, mood: number) => sum + mood, 0) / moods.length,
     }))
 
-    // Calculate statistics
-    const totalMood = entries.reduce((sum, entry) => sum + entry.mood_score, 0) // Using snake_case field name
+    // Calculate statistics (now using camelCase)
+    const totalMood = entries.reduce((sum, entry) => sum + entry.moodScore, 0)
     const averageMood = entries.length > 0 ? totalMood / entries.length : 0
 
     const recentEntries = entries.slice(-7)
     const olderEntries = entries.slice(-14, -7)
     const recentAvg =
-      recentEntries.length > 0 ? recentEntries.reduce((sum, e) => sum + e.mood_score, 0) / recentEntries.length : 0 // Using snake_case field name
+      recentEntries.length > 0 ? recentEntries.reduce((sum, e) => sum + e.moodScore, 0) / recentEntries.length : 0
     const olderAvg =
-      olderEntries.length > 0 ? olderEntries.reduce((sum, e) => sum + e.mood_score, 0) / olderEntries.length : 0 // Using snake_case field name
+      olderEntries.length > 0 ? olderEntries.reduce((sum, e) => sum + e.moodScore, 0) / olderEntries.length : 0
     const moodImprovement = olderAvg > 0 ? ((recentAvg - olderAvg) / olderAvg) * 100 : 0
 
     // Calculate streak - you might need to adjust this URL based on your actual endpoint
