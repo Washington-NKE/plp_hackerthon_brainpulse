@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 export default function Custom404() {
   const [currentMood, setCurrentMood] = useState(0)
   const [isWiggling, setIsWiggling] = useState(false)
+  const [dimensions, setDimensions] = useState({ width: 1000, height: 800 })
   
   const moods = [
     { emoji: "😵", feeling: "confused", color: "#ff6b6b" },
@@ -27,6 +28,26 @@ export default function Custom404() {
   ]
 
   const [currentMessage, setCurrentMessage] = useState(0)
+
+  useEffect(() => {
+    // Set dimensions once on client side
+    if (typeof window !== 'undefined') {
+      setDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight
+      })
+
+      const handleResize = () => {
+        setDimensions({
+          width: window.innerWidth,
+          height: window.innerHeight
+        })
+      }
+
+      window.addEventListener('resize', handleResize)
+      return () => window.removeEventListener('resize', handleResize)
+    }
+  }, [])
 
   useEffect(() => {
     const moodTimer = setInterval(() => {
@@ -57,13 +78,13 @@ export default function Custom404() {
             key={i}
             className="absolute rounded-full bg-white/10"
             initial={{ 
-              x: Math.random() * window.innerWidth, 
-              y: Math.random() * window.innerHeight,
+              x: Math.random() * dimensions.width, 
+              y: Math.random() * dimensions.height,
               scale: Math.random() * 0.5 + 0.5
             }}
             animate={{
-              x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
-              y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 800),
+              x: Math.random() * dimensions.width,
+              y: Math.random() * dimensions.height,
               rotate: 360,
               scale: [0.5, 1, 0.5]
             }}
@@ -231,7 +252,7 @@ export default function Custom404() {
           <Button 
             size="lg" 
             variant="ghost"
-            onClick={() => window.location.reload()}
+            onClick={() => typeof window !== 'undefined' && window.location.reload()}
             className="text-white hover:bg-white/20 font-semibold px-8 py-3 rounded-full transition-all duration-300 hover:scale-105"
           >
             <RefreshCw className="w-5 h-5 mr-2" />
