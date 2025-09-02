@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  NON_BINARY
+  PREFER_NOT_TO_SAY
+}
+
+enum Theme {
+  SYSTEM
+  LIGHT
+  DARK
+}
+
+model User {
+  id            String @id @default(cuid())
+  email         String @unique
+  password      String
+  name          String?
+  gender        Gender?
+  theme         Theme @default(SYSTEM)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  journalEntries    JournalEntry[]
+  reflections       Reflection[]
+  insights          Insight[]
+  promptPreferences PromptPreference[]
+  notifications     Notification[]
+}
+
+model JournalEntry {
+  id           String   @id @default(cuid())
+  userId       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  date         DateTime
+  moodScore    Int      // 1-10
+  emotions     String[] // e.g., ["joy","anxiety"]
+  tags         String[] // e.g., ["work","family"]
+  text         String   @db.Text
+  aiSummary    String?  @db.Text
+  aiAffirmation String?
+  sentiment    Float?   // -1..1
+  sleepHours   Float?
+  steps        Int?
+  stressLevel  Int?     // 1-10
+  triggers     String[]
+  
+  // Relations
+  attachments  Attachment[]
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([date])
+}
+
+model Attachment {
+  id       String @id @default(cuid())
+  entryId  String
+  url      String
+  mimeType String
+  filename String?
+  size     Int?
+  
+  // Relations
+  entry    JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  
+  @@index([entryId])
+}
+
+model Reflection {
+  id        String   @id @default(cuid())
+  userId    String
+  createdAt DateTime @default(now())
+  question  String
+  answer    String   @db.Text
+  
+  // Relations
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+}
+
+model Insight {
+  id        String   @id @default(cuid())
+  userId    String
+  createdAt DateTime @default(now())
+  kind      String   // "streak","trend","sleep-mood-correlation" etc.
+  payload   Json
+  
+  // Relations
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([kind])
+}
+
+model PromptPreference {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  cadence    String   // daily, 2/day, weekly
+  categories String[] // gratitude, cbt, reflection
+  
+  // Relations
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  createdAt DateTime @default(now())
+  channel   String   // email, in-app
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  
+  // Relations
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([read])
+}
