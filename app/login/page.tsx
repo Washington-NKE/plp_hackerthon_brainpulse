@@ -1,16 +1,7 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
-import { signIn } from "next-auth/react"
+import React, { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import Link from "next/link"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -18,51 +9,63 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isClient, setIsClient] = useState(false)
   const [currentMood, setCurrentMood] = useState(0)
+  const [rememberMe, setRememberMe] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
 
   // Mood-based theme cycling
   const moods = [
-    { name: "Energetic", gradient: "energy-gradient", emoji: "⚡" },
-    { name: "Calm", gradient: "calm-gradient", emoji: "🌊" },
-    { name: "Joyful", gradient: "joy-gradient", emoji: "✨" },
-    { name: "Thoughtful", gradient: "mood-gradient", emoji: "🎭" }
+    { name: "Energetic", gradient: "linear-gradient(135deg, #ff6b6b 0%, #feca57 100%)", emoji: "⚡" },
+    { name: "Calm", gradient: "linear-gradient(135deg, #48cae4 0%, #023e8a 100%)", emoji: "🌊" },
+    { name: "Joyful", gradient: "linear-gradient(135deg, #06ffa5 0%, #00b4d8 100%)", emoji: "✨" },
+    { name: "Thoughtful", gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", emoji: "🎭" }
   ]
+
+  // Ensure client-side hydration
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   // Check for success message from registration
   useEffect(() => {
-    const message = searchParams.get('message')
-    if (message) {
-      setSuccess(message)
+    if (isClient) {
+      const message = searchParams.get('message')
+      if (message) {
+        setSuccess(message)
+      }
     }
-  }, [searchParams])
+  }, [searchParams, isClient])
 
   // Cycle through moods for dynamic theming
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentMood((prev) => (prev + 1) % moods.length)
-    }, 4000)
-    return () => clearInterval(interval)
-  }, [])
+    if (isClient) {
+      const interval = setInterval(() => {
+        setCurrentMood((prev) => (prev + 1) % moods.length)
+      }, 4000)
+      return () => clearInterval(interval)
+    }
+  }, [isClient])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
     setSuccess("")
 
     try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
+      // Simulate sign in - replace with your actual signIn logic
+      const response = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, rememberMe })
       })
 
-      if (result?.error) {
-        setError("Invalid email or password")
-      } else {
+      if (response.ok) {
         router.push("/dashboard")
+      } else {
+        setError("Invalid email or password")
       }
     } catch (error) {
       setError("An error occurred. Please try again.")
@@ -71,176 +74,468 @@ export default function LoginPage() {
     }
   }
 
+  if (!isClient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    )
+  }
+
   const currentMoodData = moods[currentMood]
 
+  const inputStyle = {
+    width: "100%",
+    padding: "16px 16px 16px 50px",
+    borderRadius: "12px",
+    border: "2px solid rgba(0, 0, 0, 0.1)",
+    background: "rgba(255, 255, 255, 0.9)",
+    fontSize: "16px",
+    transition: "all 0.3s ease",
+    outline: "none",
+    boxSizing: "border-box",
+    WebkitAppearance: "none"
+  }
+
+  const focusStyle = {
+    border: "2px solid #667eea",
+    boxShadow: "0 0 0 3px rgba(102, 126, 234, 0.1)"
+  }
+
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Dynamic background with animated mood patterns */}
-      <div className="absolute inset-0 mood-bg-pattern">
-        <div className={`absolute inset-0 ${currentMoodData.gradient} opacity-20 animate-gradient-shift`}></div>
-        <div className="absolute inset-0 energy-particles"></div>
-      </div>
+    <div style={{
+      minHeight: "100vh",
+      position: "relative",
+      background: currentMoodData.gradient,
+      padding: "16px",
+      fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+    }}>
+      {/* Animated background elements */}
+      <div style={{
+        position: "absolute",
+        top: "16px",
+        left: "16px",
+        width: "80px",
+        height: "80px",
+        background: "rgba(255, 255, 255, 0.2)",
+        borderRadius: "50%",
+        animation: "float 6s ease-in-out infinite"
+      }} />
       
-      {/* Floating mood elements */}
-      <div className="absolute top-16 left-16 w-28 h-28 bg-gradient-to-br from-blue-400/30 to-purple-400/30 rounded-full animate-float blur-xl"></div>
-      <div className="absolute bottom-16 right-16 w-36 h-36 bg-gradient-to-br from-pink-400/30 to-orange-400/30 rounded-full animate-float blur-xl" style={{animationDelay: "1.5s"}}></div>
-      <div className="absolute top-1/3 right-10 w-20 h-20 bg-gradient-to-br from-green-400/20 to-blue-400/20 rounded-full animate-morphing-blob"></div>
-      <div className="absolute bottom-1/3 left-10 w-24 h-24 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full animate-breathe"></div>
+      <div style={{
+        position: "absolute",
+        bottom: "16px",
+        right: "16px",
+        width: "120px",
+        height: "120px",
+        background: "rgba(255, 255, 255, 0.15)",
+        borderRadius: "50%",
+        animation: "float 8s ease-in-out infinite reverse"
+      }} />
+
+      <div style={{
+        position: "absolute",
+        top: "60%",
+        right: "10px",
+        width: "60px",
+        height: "60px",
+        background: "rgba(255, 255, 255, 0.1)",
+        borderRadius: "50%",
+        animation: "pulse 4s ease-in-out infinite"
+      }} />
 
       {/* Mood indicator */}
-      <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-20">
-        <div className="glass-card px-6 py-3 border-0">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl animate-bounce">{currentMoodData.emoji}</span>
-            <span className="text-sm font-medium text-foreground/80">
-              Today feels {currentMoodData.name.toLowerCase()}
-            </span>
-          </div>
+      <div style={{
+        position: "absolute",
+        top: "32px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        zIndex: 20,
+        background: "rgba(255, 255, 255, 0.9)",
+        backdropFilter: "blur(10px)",
+        borderRadius: "20px",
+        padding: "12px 24px",
+        border: "1px solid rgba(255, 255, 255, 0.3)"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <span style={{ fontSize: "24px", animation: "bounce 2s ease-in-out infinite" }}>
+            {currentMoodData.emoji}
+          </span>
+          <span style={{ fontSize: "14px", fontWeight: "500", color: "#374151" }}>
+            Today feels {currentMoodData.name.toLowerCase()}
+          </span>
         </div>
       </div>
 
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md glass-card border-0 animate-card-hover">
-          <CardHeader className="space-y-1 text-center pb-8">
-            <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-text-glow">
+      {/* Main container */}
+      <div style={{
+        position: "relative",
+        zIndex: 10,
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }}>
+        <div style={{
+          width: "100%",
+          maxWidth: "450px",
+          background: "rgba(255, 255, 255, 0.95)",
+          backdropFilter: "blur(20px)",
+          borderRadius: "20px",
+          padding: "40px",
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+          border: "1px solid rgba(255, 255, 255, 0.2)"
+        }}>
+          {/* Header */}
+          <div style={{ textAlign: "center", marginBottom: "32px" }}>
+            <h1 style={{
+              fontSize: "44px",
+              fontWeight: "bold",
+              background: currentMoodData.gradient,
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              marginBottom: "8px",
+              animation: "glow 2s ease-in-out infinite alternate"
+            }}>
               Welcome Back
-            </CardTitle>
-            <CardDescription className="text-lg text-muted-foreground">
+            </h1>
+            <p style={{
+              color: "#6b7280",
+              fontSize: "18px"
+            }}>
               Continue your mood journey 🌟
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent className="space-y-6">
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {error && (
-                <Alert variant="destructive" className="glass border-red-300/50 animate-pulse-glow">
-                  <AlertDescription className="text-sm flex items-center gap-2">
-                    ❌ {error}
-                  </AlertDescription>
-                </Alert>
-              )}
+            </p>
+          </div>
 
-              {success && (
-                <Alert className="glass border-green-300/50 bg-green-50/20 animate-pulse-glow">
-                  <AlertDescription className="text-sm flex items-center gap-2 text-green-700">
-                    ✅ {success}
-                  </AlertDescription>
-                </Alert>
-              )}
+          {/* Alerts */}
+          {error && (
+            <div style={{
+              padding: "16px",
+              marginBottom: "24px",
+              background: "rgba(239, 68, 68, 0.1)",
+              border: "1px solid rgba(239, 68, 68, 0.3)",
+              borderRadius: "12px",
+              color: "#dc2626",
+              fontSize: "14px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px"
+            }}>
+              ❌ {error}
+            </div>
+          )}
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-foreground/80">
-                  Email Address
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="glass-button border-white/30 focus:border-blue-400/50 focus:ring-blue-400/30 pl-10 animate-shimmer"
-                  />
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                    📧
-                  </span>
-                </div>
-              </div>
+          {success && (
+            <div style={{
+              padding: "16px",
+              marginBottom: "24px",
+              background: "rgba(34, 197, 94, 0.1)",
+              border: "1px solid rgba(34, 197, 94, 0.3)",
+              borderRadius: "12px",
+              color: "#16a34a",
+              fontSize: "14px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px"
+            }}>
+              ✅ {success}
+            </div>
+          )}
 
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-foreground/80">
-                  Password
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="glass-button border-white/30 focus:border-blue-400/50 focus:ring-blue-400/30 pl-10"
-                  />
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                    🔒
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between text-sm">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" className="rounded border-white/30" />
-                  <span className="text-muted-foreground">Remember me</span>
-                </label>
-                <Link href="/forgot-password" className="text-blue-600 hover:text-blue-700 hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
-
-              <Button 
-                type="submit" 
-                className={`w-full relative overflow-hidden btn-ripple ${currentMoodData.gradient} border-0 shadow-xl animate-pulse-glow transform hover:scale-105 transition-all duration-300`}
-                disabled={isLoading}
-              >
-                <span className="relative z-10 flex items-center justify-center gap-2">
-                  {isLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Signing in...
-                    </>
-                  ) : (
-                    <>
-                      {currentMoodData.emoji} Sign In
-                    </>
-                  )}
+          {/* Form */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            {/* Email Input */}
+            <div>
+              <label style={{
+                display: "block",
+                marginBottom: "8px",
+                fontWeight: "500",
+                color: "#374151",
+                fontSize: "14px"
+              }}>
+                Email Address
+              </label>
+              <div style={{ position: "relative" }}>
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  style={inputStyle}
+                  onFocus={(e) => Object.assign(e.target.style, focusStyle)}
+                  onBlur={(e) => {
+                    e.target.style.border = "2px solid rgba(0, 0, 0, 0.1)"
+                    e.target.style.boxShadow = "none"
+                  }}
+                />
+                <span style={{
+                  position: "absolute",
+                  left: "16px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  fontSize: "18px"
+                }}>
+                  📧
                 </span>
-              </Button>
-            </form>
+              </div>
+            </div>
+
+            {/* Password Input */}
+            <div>
+              <label style={{
+                display: "block",
+                marginBottom: "8px",
+                fontWeight: "500",
+                color: "#374151",
+                fontSize: "14px"
+              }}>
+                Password
+              </label>
+              <div style={{ position: "relative" }}>
+                <input
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  style={inputStyle}
+                  onFocus={(e) => Object.assign(e.target.style, focusStyle)}
+                  onBlur={(e) => {
+                    e.target.style.border = "2px solid rgba(0, 0, 0, 0.1)"
+                    e.target.style.boxShadow = "none"
+                  }}
+                />
+                <span style={{
+                  position: "absolute",
+                  left: "16px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  fontSize: "18px"
+                }}>
+                  🔒
+                </span>
+              </div>
+            </div>
+
+            {/* Remember me & Forgot password */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "14px" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                <input 
+                  type="checkbox" 
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  style={{ 
+                    width: "16px", 
+                    height: "16px",
+                    borderRadius: "4px",
+                    cursor: "pointer"
+                  }} 
+                />
+                <span style={{ color: "#6b7280" }}>Remember me</span>
+              </label>
+              <a 
+                href="/forgot-password" 
+                style={{
+                  color: "#667eea",
+                  textDecoration: "none",
+                  fontWeight: "500"
+                }}
+                onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
+                onMouseLeave={(e) => e.target.style.textDecoration = "none"}
+              >
+                Forgot password?
+              </a>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isLoading}
+              style={{
+                width: "100%",
+                padding: "16px",
+                borderRadius: "12px",
+                border: "none",
+                background: isLoading 
+                  ? "linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)"
+                  : currentMoodData.gradient,
+                color: "white",
+                fontSize: "18px",
+                fontWeight: "600",
+                cursor: isLoading ? "not-allowed" : "pointer",
+                transition: "all 0.3s ease",
+                transform: isLoading ? "none" : "translateY(0px)",
+                boxShadow: isLoading ? "none" : "0 10px 25px -5px rgba(102, 126, 234, 0.4)"
+              }}
+              onMouseEnter={(e) => {
+                if (!isLoading) {
+                  e.target.style.transform = "translateY(-2px)"
+                  e.target.style.boxShadow = "0 15px 35px -5px rgba(102, 126, 234, 0.5)"
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isLoading) {
+                  e.target.style.transform = "translateY(0px)"
+                  e.target.style.boxShadow = "0 10px 25px -5px rgba(102, 126, 234, 0.4)"
+                }
+              }}
+            >
+              {isLoading ? (
+                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                  <div style={{
+                    width: "20px",
+                    height: "20px",
+                    border: "2px solid rgba(255, 255, 255, 0.3)",
+                    borderTop: "2px solid white",
+                    borderRadius: "50%",
+                    animation: "spin 1s linear infinite"
+                  }} />
+                  Signing in...
+                </span>
+              ) : (
+                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                  {currentMoodData.emoji} Sign In
+                </span>
+              )}
+            </button>
 
             {/* Divider */}
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-white/20"></span>
+            <div style={{ position: "relative", margin: "24px 0" }}>
+              <div style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center"
+              }}>
+                <span style={{ width: "100%", borderTop: "1px solid rgba(0, 0, 0, 0.1)" }} />
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background/80 px-2 text-muted-foreground backdrop-blur-sm">
+              <div style={{
+                position: "relative",
+                display: "flex",
+                justifyContent: "center",
+                fontSize: "12px",
+                textTransform: "uppercase"
+              }}>
+                <span style={{
+                  background: "rgba(255, 255, 255, 0.9)",
+                  padding: "0 16px",
+                  color: "#6b7280",
+                  backdropFilter: "blur(4px)"
+                }}>
                   or
                 </span>
               </div>
             </div>
 
-            {/* Social login buttons */}
-            <div className="space-y-3">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full glass-button border-white/30 hover:bg-white/10"
-              >
-                <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-                Continue with Google
-              </Button>
-            </div>
+            {/* Google Sign In */}
+            <button
+              type="button"
+              style={{
+                width: "100%",
+                padding: "16px",
+                borderRadius: "12px",
+                border: "2px solid rgba(0, 0, 0, 0.1)",
+                background: "rgba(255, 255, 255, 0.8)",
+                fontSize: "16px",
+                fontWeight: "500",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "12px",
+                transition: "all 0.3s ease"
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = "rgba(255, 255, 255, 1)"
+                e.target.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.1)"
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = "rgba(255, 255, 255, 0.8)"
+                e.target.style.boxShadow = "none"
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              Continue with Google
+            </button>
+          </div>
 
-            <div className="text-center pt-4">
-              <p className="text-sm text-muted-foreground">
-                New to BrainPulse?{" "}
-                <Link 
-                  href="/register" 
-                  className="font-medium bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent hover:from-blue-700 hover:to-purple-700 transition-all duration-300 hover:underline"
-                >
-                  Create an account
-                </Link>
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Register Link */}
+          <div style={{ textAlign: "center", marginTop: "32px" }}>
+            <p style={{ color: "#6b7280", fontSize: "14px" }}>
+              New to BrainPulse?{" "}
+              <a 
+                href="/register" 
+                style={{
+                  background: currentMoodData.gradient,
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  textDecoration: "none",
+                  fontWeight: "600"
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.textDecoration = "underline"
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.textDecoration = "none"
+                }}
+              >
+                Create an account
+              </a>
+            </p>
+          </div>
+        </div>
       </div>
+
+      {/* CSS Keyframes */}
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-20px) rotate(180deg); }
+        }
+        
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); opacity: 0.3; }
+          50% { transform: scale(1.1); opacity: 0.6; }
+        }
+        
+        @keyframes glow {
+          0% { text-shadow: 0 0 5px rgba(102, 126, 234, 0.5); }
+          100% { text-shadow: 0 0 20px rgba(102, 126, 234, 0.8), 0 0 30px rgba(102, 126, 234, 0.6); }
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes bounce {
+          0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+          40% { transform: translateY(-10px); }
+          60% { transform: translateY(-5px); }
+        }
+        
+        /* Prevent zoom on iOS */
+        input, button, select, textarea {
+          font-size: 16px !important;
+        }
+        
+        /* Ensure proper stacking */
+        * {
+          box-sizing: border-box;
+        }
+        
+        /* Smooth transitions */
+        input:focus {
+          transform: translateY(-1px);
+        }
+      `}</style>
     </div>
   )
 }

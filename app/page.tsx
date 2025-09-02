@@ -58,6 +58,10 @@ const GlowingOrb = ({ className, children, delay = 0 }: { className?: string, ch
   </motion.div>
 )
 
+function currentYear() {
+  return new Date().getFullYear();
+}
+
 export default function EnhancedLandingPage() {
   const { scrollY } = useScroll()
   const y1 = useTransform(scrollY, [0, 300], [0, -50])
@@ -181,7 +185,7 @@ export default function EnhancedLandingPage() {
           </motion.div>
           
           <div className="flex items-center gap-4">
-            {session? 
+            {session.status !== 'unauthenticated' ? 
             <div>
             <Link href="/dashboard">Dashboard</Link>
             <Button onClick={() => signOut()}>
@@ -573,7 +577,7 @@ export default function EnhancedLandingPage() {
                 animate={{ opacity: [0.7, 1, 0.7] }}
                 transition={{ duration: 3, repeat: Infinity }}
               >
-                © 2024 BrainPulse. Crafted with ❤️ for your mental wellbeing journey.
+                © {currentYear()} BrainPulse. Crafted with ❤️ for your mental wellbeing journey.
               </motion.p>
               
               <div className="flex items-center gap-4">

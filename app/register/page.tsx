@@ -1,16 +1,7 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import Link from "next/link"
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -22,29 +13,30 @@ export default function RegisterPage() {
   })
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [themeClass, setThemeClass] = useState("")
+  const [isClient, setIsClient] = useState(false)
+  const [showGenderDropdown, setShowGenderDropdown] = useState(false)
   const router = useRouter()
 
-  // Apply theme based on selected gender
+  // Ensure client-side hydration
   useEffect(() => {
-    if (formData.gender === "male") {
-      setThemeClass("male")
-    } else if (formData.gender === "female") {
-      setThemeClass("female")
-    } else {
-      setThemeClass("")
-    }
-  }, [formData.gender])
+    setIsClient(true)
+  }, [])
 
-  // Apply theme class to body
+  // Close dropdown when clicking outside
   useEffect(() => {
-    document.body.className = themeClass
-    return () => {
-      document.body.className = ""
+    const handleClickOutside = (event) => {
+      if (showGenderDropdown && !event.target.closest('[data-dropdown]')) {
+        setShowGenderDropdown(false)
+      }
     }
-  }, [themeClass])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+    if (showGenderDropdown) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showGenderDropdown])
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
@@ -83,159 +75,451 @@ export default function RegisterPage() {
     }
   }
 
+  const genderOptions = [
+    { value: "male", label: "Male" },
+    { value: "female", label: "Female" },
+    { value: "non-binary", label: "Non-binary" },
+    { value: "prefer-not-to-say", label: "Prefer not to say" }
+  ]
+
+  if (!isClient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    )
+  }
+
+  const inputStyle = {
+    width: "100%",
+    padding: "16px",
+    borderRadius: "12px",
+    border: "2px solid rgba(0, 0, 0, 0.1)",
+    background: "rgba(255, 255, 255, 0.9)",
+    fontSize: "16px",
+    transition: "all 0.3s ease",
+    outline: "none",
+    boxSizing: "border-box",
+    WebkitAppearance: "none",
+    MozAppearance: "textfield"
+  }
+
+  const focusStyle = {
+    border: "2px solid #667eea",
+    boxShadow: "0 0 0 3px rgba(102, 126, 234, 0.1)"
+  }
+
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Dynamic background with mood patterns */}
-      <div className="absolute inset-0 mood-bg-pattern">
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-400/20 via-pink-400/20 to-blue-400/20 animate-gradient-shift"></div>
-        <div className="absolute inset-0 energy-particles"></div>
-      </div>
+    <div style={{
+      minHeight: "100vh",
+      position: "relative",
+      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      padding: "16px",
+      fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+    }}>
+      {/* Animated background elements */}
+      <div style={{
+        position: "absolute",
+        top: "10%",
+        left: "10%",
+        width: "100px",
+        height: "100px",
+        background: "linear-gradient(45deg, #ff6b6b, #feca57)",
+        borderRadius: "50%",
+        opacity: 0.7,
+        animation: "float 6s ease-in-out infinite"
+      }} />
       
-      {/* Floating elements */}
-      <div className="absolute top-20 left-20 w-32 h-32 bg-gradient-to-br from-purple-400/30 to-pink-400/30 rounded-full animate-float blur-xl"></div>
-      <div className="absolute bottom-20 right-20 w-40 h-40 bg-gradient-to-br from-blue-400/30 to-purple-400/30 rounded-full animate-float blur-xl" style={{animationDelay: "1s"}}></div>
-      <div className="absolute top-1/2 left-10 w-24 h-24 bg-gradient-to-br from-pink-400/20 to-orange-400/20 rounded-full animate-morphing-blob"></div>
+      <div style={{
+        position: "absolute",
+        bottom: "20%",
+        right: "15%",
+        width: "150px",
+        height: "150px",
+        background: "linear-gradient(45deg, #48cae4, #023e8a)",
+        borderRadius: "50%",
+        opacity: 0.6,
+        animation: "float 8s ease-in-out infinite reverse"
+      }} />
 
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md glass-card border-0 animate-card-hover">
-          <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent animate-text-glow">
-              Join BrainPulse
-            </CardTitle>
-            <CardDescription className="text-lg text-muted-foreground">
-              Begin your mood journey today ✨
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent className="space-y-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <Alert variant="destructive" className="glass border-red-300/50 animate-pulse-glow">
-                  <AlertDescription className="text-sm">{error}</AlertDescription>
-                </Alert>
-              )}
+      <div style={{
+        position: "absolute",
+        top: "60%",
+        left: "5%",
+        width: "80px",
+        height: "80px",
+        background: "linear-gradient(45deg, #06ffa5, #00b4d8)",
+        borderRadius: "50%",
+        opacity: 0.5,
+        animation: "pulse 4s ease-in-out infinite"
+      }} />
 
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-medium text-foreground/80">
-                  Full Name
-                </Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Enter your full name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  className="glass-button border-white/30 focus:border-purple-400/50 focus:ring-purple-400/30 animate-shimmer"
-                />
-              </div>
+      {/* Main container */}
+      <div style={{
+        position: "relative",
+        zIndex: 10,
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }}>
+        <div style={{
+          width: "100%",
+          maxWidth: "500px",
+          background: "rgba(255, 255, 255, 0.95)",
+          backdropFilter: "blur(20px)",
+          borderRadius: "20px",
+          padding: "40px",
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+          border: "1px solid rgba(255, 255, 255, 0.2)"
+        }}>
+          {/* Header */}
+          <div style={{ textAlign: "center", marginBottom: "32px" }}>
+            <h1 style={{
+              fontSize: "40px",
+              fontWeight: "bold",
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              marginBottom: "8px",
+              animation: "glow 2s ease-in-out infinite alternate"
+            }}>
+              Join BrainPulse ✨
+            </h1>
+            <p style={{
+              color: "#6b7280",
+              fontSize: "18px"
+            }}>
+              Begin your mood journey today
+            </p>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-foreground/80">
-                  Email Address
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
-                  className="glass-button border-white/30 focus:border-purple-400/50 focus:ring-purple-400/30"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="gender" className="text-sm font-medium text-foreground/80">
-                  Gender (Optional)
-                </Label>
-                <Select onValueChange={(value) => setFormData({ ...formData, gender: value })}>
-                  <SelectTrigger className="glass-button border-white/30 focus:border-purple-400/50 focus:ring-purple-400/30">
-                    <SelectValue placeholder="Select your gender" />
-                  </SelectTrigger>
-                  <SelectContent className="glass border-white/30">
-                    <SelectItem value="male" className="focus:bg-blue-100/20">
-                      Male
-                    </SelectItem>
-                    <SelectItem value="female" className="focus:bg-pink-100/20">
-                      Female
-                    </SelectItem>
-                    <SelectItem value="non-binary" className="focus:bg-purple-100/20">
-                      Non-binary
-                    </SelectItem>
-                    <SelectItem value="prefer-not-to-say" className="focus:bg-gray-100/20">
-                      Prefer not to say
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-medium text-foreground/80">
-                    Password
-                  </Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Create password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required
-                    className="glass-button border-white/30 focus:border-purple-400/50 focus:ring-purple-400/30"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-sm font-medium text-foreground/80">
-                    Confirm
-                  </Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="Confirm password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    required
-                    className="glass-button border-white/30 focus:border-purple-400/50 focus:ring-purple-400/30"
-                  />
-                </div>
-              </div>
-
-              <Button 
-                type="submit" 
-                className="w-full relative overflow-hidden btn-ripple bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 border-0 shadow-xl animate-pulse-glow transform hover:scale-105 transition-all duration-300" 
-                disabled={isLoading}
-              >
-                <span className="relative z-10 flex items-center justify-center gap-2">
-                  {isLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Creating your journey...
-                    </>
-                  ) : (
-                    <>
-                      🚀 Create Account
-                    </>
-                  )}
-                </span>
-              </Button>
-            </form>
-
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">
-                Already have an account?{" "}
-                <Link 
-                  href="/login" 
-                  className="font-medium bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent hover:from-purple-700 hover:to-pink-700 transition-all duration-300 hover:underline"
-                >
-                  Sign in here
-                </Link>
-              </p>
+          {/* Error Alert */}
+          {error && (
+            <div style={{
+              padding: "16px",
+              marginBottom: "24px",
+              background: "rgba(239, 68, 68, 0.1)",
+              border: "1px solid rgba(239, 68, 68, 0.3)",
+              borderRadius: "12px",
+              color: "#dc2626",
+              fontSize: "14px"
+            }}>
+              ⚠️ {error}
             </div>
-          </CardContent>
-        </Card>
+          )}
+
+          {/* Form */}
+          <div onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            {/* Name Input */}
+            <div>
+              <label style={{
+                display: "block",
+                marginBottom: "8px",
+                fontWeight: "500",
+                color: "#374151",
+                fontSize: "14px"
+              }}>
+                Full Name
+              </label>
+              <input
+                type="text"
+                placeholder="Enter your full name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+                style={inputStyle}
+                onFocus={(e) => Object.assign(e.target.style, focusStyle)}
+                onBlur={(e) => {
+                  e.target.style.border = "2px solid rgba(0, 0, 0, 0.1)"
+                  e.target.style.boxShadow = "none"
+                }}
+              />
+            </div>
+
+            {/* Email Input */}
+            <div>
+              <label style={{
+                display: "block",
+                marginBottom: "8px",
+                fontWeight: "500",
+                color: "#374151",
+                fontSize: "14px"
+              }}>
+                Email Address
+              </label>
+              <input
+                type="email"
+                placeholder="Enter your email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+                style={inputStyle}
+                onFocus={(e) => Object.assign(e.target.style, focusStyle)}
+                onBlur={(e) => {
+                  e.target.style.border = "2px solid rgba(0, 0, 0, 0.1)"
+                  e.target.style.boxShadow = "none"
+                }}
+              />
+            </div>
+
+            {/* Gender Dropdown */}
+            <div data-dropdown style={{ position: "relative" }}>
+              <label style={{
+                display: "block",
+                marginBottom: "8px",
+                fontWeight: "500",
+                color: "#374151",
+                fontSize: "14px"
+              }}>
+                Gender (Optional)
+              </label>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowGenderDropdown(!showGenderDropdown)
+                }}
+                style={{
+                  ...inputStyle,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  cursor: "pointer",
+                  color: formData.gender ? "#374151" : "#9ca3af"
+                }}
+                onFocus={(e) => Object.assign(e.target.style, focusStyle)}
+                onBlur={(e) => {
+                  setTimeout(() => {
+                    e.target.style.border = "2px solid rgba(0, 0, 0, 0.1)"
+                    e.target.style.boxShadow = "none"
+                  }, 200)
+                }}
+              >
+                <span>
+                  {formData.gender ? genderOptions.find(opt => opt.value === formData.gender)?.label : "Select your gender"}
+                </span>
+                <span style={{ 
+                  transform: showGenderDropdown ? "rotate(180deg)" : "rotate(0deg)", 
+                  transition: "transform 0.3s ease",
+                  fontSize: "12px"
+                }}>
+                  ▼
+                </span>
+              </button>
+
+              {showGenderDropdown && (
+                <div style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  right: 0,
+                  background: "white",
+                  border: "2px solid rgba(0, 0, 0, 0.1)",
+                  borderRadius: "12px",
+                  marginTop: "4px",
+                  zIndex: 1000,
+                  boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
+                  maxHeight: "200px",
+                  overflowY: "auto"
+                }}>
+                  {genderOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setFormData({ ...formData, gender: option.value })
+                        setShowGenderDropdown(false)
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "12px 16px",
+                        border: "none",
+                        background: "transparent",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        fontSize: "16px",
+                        transition: "background-color 0.2s ease"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = "#f3f4f6"
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = "transparent"
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Password Inputs */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+              <div>
+                <label style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontWeight: "500",
+                  color: "#374151",
+                  fontSize: "14px"
+                }}>
+                  Password
+                </label>
+                <input
+                  type="password"
+                  placeholder="Create password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required
+                  style={inputStyle}
+                  onFocus={(e) => Object.assign(e.target.style, focusStyle)}
+                  onBlur={(e) => {
+                    e.target.style.border = "2px solid rgba(0, 0, 0, 0.1)"
+                    e.target.style.boxShadow = "none"
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontWeight: "500",
+                  color: "#374151",
+                  fontSize: "14px"
+                }}>
+                  Confirm
+                </label>
+                <input
+                  type="password"
+                  placeholder="Confirm password"
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  required
+                  style={inputStyle}
+                  onFocus={(e) => Object.assign(e.target.style, focusStyle)}
+                  onBlur={(e) => {
+                    e.target.style.border = "2px solid rgba(0, 0, 0, 0.1)"
+                    e.target.style.boxShadow = "none"
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isLoading}
+              style={{
+                width: "100%",
+                padding: "16px",
+                borderRadius: "12px",
+                border: "none",
+                background: isLoading 
+                  ? "linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)"
+                  : "linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)",
+                color: "white",
+                fontSize: "18px",
+                fontWeight: "600",
+                cursor: isLoading ? "not-allowed" : "pointer",
+                transition: "all 0.3s ease",
+                transform: isLoading ? "none" : "translateY(0px)",
+                boxShadow: isLoading ? "none" : "0 10px 25px -5px rgba(102, 126, 234, 0.4)"
+              }}
+              onMouseEnter={(e) => {
+                if (!isLoading) {
+                  e.target.style.transform = "translateY(-2px)"
+                  e.target.style.boxShadow = "0 15px 35px -5px rgba(102, 126, 234, 0.5)"
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isLoading) {
+                  e.target.style.transform = "translateY(0px)"
+                  e.target.style.boxShadow = "0 10px 25px -5px rgba(102, 126, 234, 0.4)"
+                }
+              }}
+            >
+              {isLoading ? (
+                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                  <div style={{
+                    width: "20px",
+                    height: "20px",
+                    border: "2px solid rgba(255, 255, 255, 0.3)",
+                    borderTop: "2px solid white",
+                    borderRadius: "50%",
+                    animation: "spin 1s linear infinite"
+                  }} />
+                  Creating your journey...
+                </span>
+              ) : (
+                "🚀 Create Account"
+              )}
+            </button>
+          </div>
+
+          {/* Login Link */}
+          <div style={{ textAlign: "center", marginTop: "32px" }}>
+            <p style={{ color: "#6b7280", fontSize: "14px" }}>
+              Already have an account?{" "}
+              <a 
+                href="/login" 
+                style={{
+                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  textDecoration: "none",
+                  fontWeight: "600"
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.textDecoration = "underline"
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.textDecoration = "none"
+                }}
+              >
+                Sign in here
+              </a>
+            </p>
+          </div>
+        </div>
       </div>
+
+      {/* CSS Keyframes */}
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-20px) rotate(180deg); }
+        }
+        
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); opacity: 0.5; }
+          50% { transform: scale(1.1); opacity: 0.8; }
+        }
+        
+        @keyframes glow {
+          0% { text-shadow: 0 0 5px rgba(102, 126, 234, 0.5); }
+          100% { text-shadow: 0 0 20px rgba(102, 126, 234, 0.8), 0 0 30px rgba(102, 126, 234, 0.6); }
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        /* Prevent zoom on iOS */
+        input, button, select, textarea {
+          font-size: 16px !important;
+        }
+        
+        /* Ensure proper stacking */
+        * {
+          box-sizing: border-box;
+        }
+      `}</style>
     </div>
   )
 }
