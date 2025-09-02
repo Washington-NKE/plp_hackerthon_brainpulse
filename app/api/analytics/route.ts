@@ -18,33 +18,24 @@ export async function GET(request: NextRequest) {
     const days = range === "week" ? 7 : range === "month" ? 30 : 90
     const startDate = subDays(new Date(), days)
 
-    // Fetch journal entries
-    type JournalEntry = {
-      moodScore: number
-      emotions: string[]
-      sleepHours: number
-      stressLevel: number
-      createdAt: Date
-      date: Date
-    }
-
-    const entries: JournalEntry[] = await prisma.journalEntry.findMany({
+    // Fetch journal entries - using the actual database field names
+    const entries = await prisma.journalEntry.findMany({
       where: {
         userId: session.user.id,
-        createdAt: {
+        created_at: { // Using snake_case field name
           gte: startDate,
         },
       },
       select: {
-        moodScore: true,
+        mood_score: true, // Using snake_case field name
         emotions: true,
-        sleepHours: true,
-        stressLevel: true,
-        createdAt: true,
+        sleep_hours: true, // Using snake_case field name
+        stress_level: true, // Using snake_case field name
+        created_at: true, // Using snake_case field name
         date: true,
       },
       orderBy: {
-        createdAt: 'asc',
+        created_at: 'asc', // Using snake_case field name
       },
     })
 
@@ -53,12 +44,12 @@ export async function GET(request: NextRequest) {
     const moodTrend: MoodTrendPoint[] = []
     const dailyMoods = new Map<string, number[]>()
 
-    entries.forEach((entry: JournalEntry) => {
+    entries.forEach((entry) => {
       const date = entry.date.toISOString().split('T')[0]
       if (!dailyMoods.has(date)) {
         dailyMoods.set(date, [])
       }
-      dailyMoods.get(date)!.push(entry.moodScore)
+      dailyMoods.get(date)!.push(entry.mood_score) // Using snake_case field name
     })
 
     for (const [date, moods] of dailyMoods) {
@@ -104,22 +95,32 @@ export async function GET(request: NextRequest) {
     }))
 
     // Calculate statistics
-    const totalMood = entries.reduce((sum, entry) => sum + entry.moodScore, 0)
+    const totalMood = entries.reduce((sum, entry) => sum + entry.mood_score, 0) // Using snake_case field name
     const averageMood = entries.length > 0 ? totalMood / entries.length : 0
 
     const recentEntries = entries.slice(-7)
     const olderEntries = entries.slice(-14, -7)
     const recentAvg =
-      recentEntries.length > 0 ? recentEntries.reduce((sum, e) => sum + e.moodScore, 0) / recentEntries.length : 0
+      recentEntries.length > 0 ? recentEntries.reduce((sum, e) => sum + e.mood_score, 0) / recentEntries.length : 0 // Using snake_case field name
     const olderAvg =
-      olderEntries.length > 0 ? olderEntries.reduce((sum, e) => sum + e.moodScore, 0) / olderEntries.length : 0
+      olderEntries.length > 0 ? olderEntries.reduce((sum, e) => sum + e.mood_score, 0) / olderEntries.length : 0 // Using snake_case field name
     const moodImprovement = olderAvg > 0 ? ((recentAvg - olderAvg) / olderAvg) * 100 : 0
 
-    // Calculate streak
-    const streakResponse = await fetch(`${request.nextUrl.origin}/api/analytics/streak`, {
-      headers: { cookie: request.headers.get("cookie") || "" },
-    })
-    const streakData = await streakResponse.json()
+    // Calculate streak - you might need to adjust this URL based on your actual endpoint
+    let streakData = { streak: 0 }
+    try {
+      const streakResponse = await fetch(`${request.nextUrl.origin}/api/analytics/streak`, {
+        headers: { 
+          cookie: request.headers.get("cookie") || "",
+          'Content-Type': 'application/json'
+        },
+      })
+      if (streakResponse.ok) {
+        streakData = await streakResponse.json()
+      }
+    } catch (streakError) {
+      console.warn("Failed to fetch streak data:", streakError)
+    }
 
     // Calculate correlations (simplified)
     const correlations = {
