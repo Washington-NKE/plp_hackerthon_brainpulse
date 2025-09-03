@@ -65,13 +65,15 @@ export default function LoginPage() {
       const result = await signIn('credentials', {
         email,
         password,
-        redirect: false,
+        callbackUrl: '/dashboard',
+        redirect: true
       })
 
       if (result?.error) {
         setError("Invalid email or password")
       } else if (result?.ok) {
         // Wait for session to be established
+        setSuccess("Login successful!")
         await new Promise(resolve => setTimeout(resolve, 100))
         router.push("/dashboard")
         router.refresh()
