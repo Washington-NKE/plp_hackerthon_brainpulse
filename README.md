@@ -115,11 +115,11 @@ GEMINI_API_KEY="your-gemini-api-key"
 
 | 🏠 Dashboard | 📝 Journal Entry | 📊 Analytics |
 |--------------|------------------|--------------|
-| ![Dashboard](path/to/dashboard.png) | ![Journal](path/to/journal.png) | ![Analytics](path/to/analytics.png) |
+| ![Dashboard](public/screenshots/brainpulse3.png) | ![Journal](public/screenshots/brainpulse4.png) | ![Analytics](public/screenshots/brainpulse5.png) |
 
 | ⚙️ Settings | 🎨 Themes | 📱 Mobile |
 |-------------|-----------|-----------|
-| ![Settings](path/to/settings.png) | ![Themes](path/to/themes.png) | ![Mobile](path/to/mobile.png) |
+| ![Settings](public/screenshots/brainpulse6.png) | ![Themes](public/screenshots/brainpulse6.png) | ![Mobile](public/screenshots/brainpulse7.png) |
 
 </div>
 
