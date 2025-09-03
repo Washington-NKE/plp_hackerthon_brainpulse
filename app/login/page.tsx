@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { signIn, getSession } from "next-auth/react"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -32,8 +33,14 @@ export default function LoginPage() {
   useEffect(() => {
     if (isClient) {
       const message = searchParams.get('message')
+      const errorParam = searchParams.get('error')
+      
       if (message) {
         setSuccess(message)
+      }
+      
+      if (errorParam) {
+        setError(decodeURIComponent(errorParam))
       }
     }
   }, [searchParams, isClient])
@@ -55,21 +62,40 @@ export default function LoginPage() {
     setSuccess("")
 
     try {
-      // Simulate sign in - replace with your actual signIn logic
-      const response = await fetch('/api/auth/signin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, rememberMe })
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
       })
 
-      if (response.ok) {
-        router.push("/dashboard")
-      } else {
+      if (result?.error) {
         setError("Invalid email or password")
+      } else if (result?.ok) {
+        // Wait for session to be established
+        await new Promise(resolve => setTimeout(resolve, 100))
+        router.push("/dashboard")
+        router.refresh()
       }
     } catch (error) {
+      console.error("Login error:", error)
       setError("An error occurred. Please try again.")
     } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setIsLoading(true)
+      setError("")
+      
+      await signIn('google', {
+        callbackUrl: '/dashboard',
+        redirect: true
+      })
+    } catch (error) {
+      console.error("Google sign-in error:", error)
+      setError("Failed to sign in with Google. Please try again.")
       setIsLoading(false)
     }
   }
@@ -243,7 +269,7 @@ export default function LoginPage() {
           )}
 
           {/* Form */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             {/* Email Input */}
             <div>
               <label style={{
@@ -262,6 +288,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={isLoading}
                   style={inputStyle}
                   onFocus={(e) => Object.assign(e.target.style, focusStyle)}
                   onBlur={(e) => {
@@ -299,6 +326,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={isLoading}
                   style={inputStyle}
                   onFocus={(e) => Object.assign(e.target.style, focusStyle)}
                   onBlur={(e) => {
@@ -325,6 +353,7 @@ export default function LoginPage() {
                   type="checkbox" 
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
+                  disabled={isLoading}
                   style={{ 
                     width: "16px", 
                     height: "16px",
@@ -350,8 +379,7 @@ export default function LoginPage() {
 
             {/* Submit Button */}
             <button
-              type="button"
-              onClick={handleSubmit}
+              type="submit"
               disabled={isLoading}
               style={{
                 width: "100%",
@@ -432,28 +460,35 @@ export default function LoginPage() {
             {/* Google Sign In */}
             <button
               type="button"
+              onClick={handleGoogleSignIn}
+              disabled={isLoading}
               style={{
                 width: "100%",
                 padding: "16px",
                 borderRadius: "12px",
                 border: "2px solid rgba(0, 0, 0, 0.1)",
-                background: "rgba(255, 255, 255, 0.8)",
+                background: isLoading ? "rgba(255, 255, 255, 0.5)" : "rgba(255, 255, 255, 0.8)",
                 fontSize: "16px",
                 fontWeight: "500",
-                cursor: "pointer",
+                cursor: isLoading ? "not-allowed" : "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 gap: "12px",
-                transition: "all 0.3s ease"
+                transition: "all 0.3s ease",
+                opacity: isLoading ? 0.7 : 1
               }}
               onMouseEnter={(e) => {
-                e.target.style.background = "rgba(255, 255, 255, 1)"
-                e.target.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.1)"
+                if (!isLoading) {
+                  e.target.style.background = "rgba(255, 255, 255, 1)"
+                  e.target.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.1)"
+                }
               }}
               onMouseLeave={(e) => {
-                e.target.style.background = "rgba(255, 255, 255, 0.8)"
-                e.target.style.boxShadow = "none"
+                if (!isLoading) {
+                  e.target.style.background = "rgba(255, 255, 255, 0.8)"
+                  e.target.style.boxShadow = "none"
+                }
               }}
             >
               <svg width="20" height="20" viewBox="0 0 24 24">
@@ -464,7 +499,7 @@ export default function LoginPage() {
               </svg>
               Continue with Google
             </button>
-          </div>
+          </form>
 
           {/* Register Link */}
           <div style={{ textAlign: "center", marginTop: "32px" }}>

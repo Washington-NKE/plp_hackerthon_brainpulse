@@ -1,5 +1,5 @@
 import prisma from "./prisma"
-import bcrypt from "bcrypt"
+import bcrypt from "bcryptjs"
 
 // Define types manually until Prisma client is generated
 type Gender = "MALE" | "FEMALE" | "OTHER"
@@ -77,7 +77,9 @@ export async function getUserWithPasswordByEmail(email: string) {
       name: true,
       gender: true,
       theme: true,
-      password: true
+      password: true,
+      createdAt: true,
+      updatedAt: true
     }
   })
 

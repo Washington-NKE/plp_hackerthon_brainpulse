@@ -1,13 +1,16 @@
 // lib/auth.ts
 import NextAuth, { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
+import GoogleProvider from "next-auth/providers/google"
 import bcrypt from "bcryptjs"
-import { getUserByEmail } from "@/lib/db"
-import prisma from "@/lib/prisma"
+import { getUserWithPasswordByEmail, createUser, getUserByEmail } from "@/lib/db"
 
 // Extend the User type to include gender and theme
 declare module "next-auth" {
   interface User {
+    id: string
+    email: string
+    name?: string
     gender?: string
     theme?: string
   }
@@ -19,6 +22,14 @@ declare module "next-auth" {
       gender?: string
       theme?: string
     }
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id: string
+    gender?: string
+    theme?: string
   }
 }
 
@@ -36,35 +47,17 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          // Get user from database using your Prisma utility
-          const user = await getUserByEmail(credentials.email)
-                   
-          if (!user) {
-            return null
-          }
-
-          // You'll need to add a getUserWithPassword function to get the password
-          // Or modify getUserByEmail to optionally include password
-          const userWithPassword = await prisma.user.findUnique({
-            where: { email: credentials.email },
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              gender: true,
-              theme: true,
-              password: true
-            }
-          })
-
-          if (!userWithPassword) {
+          // Get user with password from database
+          const user = await getUserWithPasswordByEmail(credentials.email)
+          
+          if (!user || !user.password) {
             return null
           }
 
           // Verify password
           const isValidPassword = await bcrypt.compare(
-            credentials.password, 
-            userWithPassword.password
+            credentials.password,
+            user.password
           )
 
           if (!isValidPassword) {
@@ -73,26 +66,75 @@ export const authOptions: NextAuthOptions = {
 
           // Return user object (without password)
           return {
-            id: userWithPassword.id,
-            email: userWithPassword.email,
-            name: userWithPassword.name,
-            gender: userWithPassword.gender,
-            theme: userWithPassword.theme,
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            gender: user.gender,
+            theme: user.theme,
           }
         } catch (error) {
           console.error("Auth error:", error)
           return null
         }
       }
+    }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
     })
   ],
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   pages: {
     signIn: "/login",
+    error: "/login", // Error code passed in query string as ?error=
   },
   callbacks: {
+    async signIn({ user, account, profile }) {
+      if (account?.provider === "google") {
+        try {
+          // Check if user exists
+          const existingUser = await getUserByEmail(user.email!)
+          
+          if (!existingUser) {
+            // Create new user for Google sign-in
+            const newUser = await createUser(
+              user.email!,
+              user.name || "Google User",
+              // Generate a random password for Google users (they won't use it)
+              Math.random().toString(36).slice(-8),
+              undefined // gender is optional
+            )
+            
+            // Update the user object with the new user data
+            user.id = newUser.id
+            user.gender = newUser.gender
+            user.theme = newUser.theme
+          } else {
+            // Update user object with existing user data
+            user.id = existingUser.id
+            user.gender = existingUser.gender
+            user.theme = existingUser.theme
+          }
+          
+          return true
+        } catch (error) {
+          console.error("Google sign-in error:", error)
+          return false
+        }
+      }
+      
+      return true
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
@@ -103,14 +145,15 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (token) {
-        session.user.id = token.id as string
-        session.user.gender = token.gender as string
-        session.user.theme = token.theme as string
+        session.user.id = token.id
+        session.user.gender = token.gender
+        session.user.theme = token.theme
       }
       return session
     },
   },
-  secret: process.env.NEXTAUTH_SECRET, // Add this line
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === "development",
 }
 
 export default NextAuth(authOptions)
