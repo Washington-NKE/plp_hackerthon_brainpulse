@@ -113,7 +113,7 @@ GEMINI_API_KEY="your-gemini-api-key"
 
 <div align="center">
 
-| 🏠 Dashboard | 📝 Journal Entry | 📊 Analytics |
+| 🏠 Dashboard | 📝 Journal Entry | 📊 AI Coach |
 |--------------|------------------|--------------|
 | ![Dashboard](public/screenshots/brainpulse3.PNG) | ![Journal](public/screenshots/brainpulse4.PNG) | ![Analytics](public/screenshots/brainpulse5.PNG) |
 
